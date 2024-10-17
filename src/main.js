@@ -10,7 +10,7 @@ export default async ({ req, res, log, error }) => {
       'sendData':req.body,
       'sendData':"hello",
 
-      // 'googleAPiKey': process.env.GOOGLE_GEMINI_API_KEY
+      'googleAPiKey': "process.env.GOOGLE_GEMINI_API_KEY"
     })
   }
 
