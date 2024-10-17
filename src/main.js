@@ -1,10 +1,10 @@
 
 export default async ({ req, res, log, error }) => {
-  if(req.method.get){
+  if(req.method == 'GET'){
 
     return res.send("welcome to era of AI !")
   }
-  if(req.method.post){
+  if(req.method == 'POST'){
 
     return res.json({
       'sendData':req.body,
