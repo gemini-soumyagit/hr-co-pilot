@@ -1,4 +1,4 @@
-// main.js for Appwrite Cloud Function
+// main.js for Appwrite Cloud Function (ES6 Modules)
 
 import { Client } from 'node-appwrite';
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
@@ -10,19 +10,10 @@ import { StructuredTool } from "langchain/tools";
 import { StringOutputParser } from "@langchain/core/output_parsers";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { z } from "zod";
-import {
-  Gemini,
-  SimpleDirectoryReader,
-  HuggingFaceEmbedding,
-  VectorStoreIndex,
-  Settings,
-  GEMINI_MODEL,
-} from "llamaindex";
 
-// Pinecone setup and query function
+// Simplified Pinecone setup and query function
 async function setupPinecone() {
-  const pinecone = new Pinecone({ apiKey: process.env.PINECONE_API_KEY });
-  return pinecone;
+  return new Pinecone({ apiKey: process.env.PINECONE_API_KEY });
 }
 
 async function queryPinecone(pinecone, query) {
@@ -42,7 +33,7 @@ async function queryPinecone(pinecone, query) {
   }
 }
 
-// HR Input Processing Tool
+// Simplified HR Input Processing Tool
 class HRInputProcessingTool extends StructuredTool {
   name = 'HR Input Processing';
   description = 'Use this tool to process and categorize HR-related queries';
@@ -64,7 +55,7 @@ class HRInputProcessingTool extends StructuredTool {
   }
 }
 
-// Pinecone Query Tool
+// Simplified Pinecone Query Tool
 class PineconeQueryTool extends StructuredTool {
   name = 'Pinecone Query';
   description = 'Use this tool to query HR policies from Pinecone';
@@ -83,52 +74,7 @@ class PineconeQueryTool extends StructuredTool {
   }
 }
 
-// LlamaIndex Tool
-class LlamaIndexTool extends StructuredTool {
-  name = 'LlamaIndex Query';
-  description = 'Use this tool to query recent HR updates from LlamaIndex';
-  schema = z.object({
-    query: z.string().describe("The query to send to LlamaIndex"),
-  });
-  
-  constructor() {
-    super();
-    this.initializeLlamaIndex();
-  }
-
-  async initializeLlamaIndex() {
-    if (!process.env.GOOGLE_API_KEY) {
-      throw new Error("GOOGLE_API_KEY is not set in the environment variables");
-    }
-
-    Settings.llm = new Gemini({
-      model: GEMINI_MODEL.GEMINI_PRO,
-    });
-
-    Settings.embedModel = new HuggingFaceEmbedding();
-
-    // Note: In Appwrite, you might need to adjust how you load documents
-    // This is just a placeholder and might need to be modified
-    const documents = [{ text: "Sample HR document content" }];
-
-    this.index = await VectorStoreIndex.fromDocuments(documents);
-    this.queryEngine = this.index.asQueryEngine();
-  }
-
-  async _call({ query }) {
-    try {
-      const results = await this.queryEngine.query({
-        query,
-      });
-      return results.message.content;
-    } catch (error) {
-      console.error('Error querying LlamaIndex:', error);
-      return 'Error retrieving information from LlamaIndex';
-    }
-  }
-}
-
-// AI Agent Management
+// Simplified AI Agent Management
 class AIAgentManager {
   constructor() {
     this.agents = new Map();
@@ -144,13 +90,9 @@ class AIAgentManager {
       agent.metrics = { ...agent.metrics, ...metrics };
     }
   }
-
-  getAgentStatus(name) {
-    return this.agents.get(name)?.status || 'not found';
-  }
 }
 
-// Ticket Management System
+// Simplified Ticket Management System
 class TicketManagementSystem {
   constructor() {
     this.tickets = new Map();
@@ -161,21 +103,10 @@ class TicketManagementSystem {
     this.tickets.set(id, { id, description, status: 'open', priority, updates: [] });
     return id;
   }
-
-  updateTicket(id, update) {
-    const ticket = this.tickets.get(id);
-    if (ticket) {
-      ticket.updates.push({ timestamp: new Date(), content: update });
-    }
-  }
-
-  getTicketStatus(id) {
-    return this.tickets.get(id)?.status || 'not found';
-  }
 }
 
-// Enhanced HR Copilot Agent
-async function createEnhancedHRCopilotAgent(pinecone, agentManager, ticketSystem) {
+// Simplified HR Copilot Agent
+async function createHRCopilotAgent(pinecone, agentManager) {
   const model = new ChatGoogleGenerativeAI({
     modelName: "gemini-pro",
     maxOutputTokens: 2048,
@@ -186,41 +117,18 @@ async function createEnhancedHRCopilotAgent(pinecone, agentManager, ticketSystem
   const tools = [
     new HRInputProcessingTool(),
     new PineconeQueryTool(pinecone),
-    new LlamaIndexTool(),
   ];
 
-  // Enhanced state definition
   const workflow = new StateGraph({
     channels: {
       query: z.string(),
       category: z.string(),
       pinecone_result: z.string(),
-      llamaindex_result: z.string(),
-      employee_context: z.object({
-        department: z.string(),
-        role: z.string(),
-        tenure: z.string()
-      }),
-      conversation_history: z.array(z.object({
-        role: z.enum(['user', 'assistant']),
-        content: z.string()
-      })),
       final_response: z.string(),
     }
   });
 
-  // Employee Context Node
-  const employeeContextNode = workflow.addNode("fetch_employee_context", async (state) => {
-    return {
-      employee_context: {
-        department: state.employee_context.department,
-        role: state.employee_context.role,
-        tenure: state.employee_context.tenure
-      }
-    };
-  });
-
-  // Categorize Node
+  // Simplified nodes
   const categorizeNode = workflow.addNode("categorize", async (state) => {
     const tool = tools.find(t => t.name === 'HR Input Processing');
     const result = await tool._call({ query: state.query });
@@ -228,7 +136,6 @@ async function createEnhancedHRCopilotAgent(pinecone, agentManager, ticketSystem
     return { category: result };
   });
 
-  // Pinecone Query Node
   const pineconeNode = workflow.addNode("pinecone_query", async (state) => {
     const tool = tools.find(t => t.name === 'Pinecone Query');
     const result = await tool._call({ query: state.query });
@@ -236,15 +143,6 @@ async function createEnhancedHRCopilotAgent(pinecone, agentManager, ticketSystem
     return { pinecone_result: result };
   });
 
-  // LlamaIndex Query Node
-  const llamaindexNode = workflow.addNode("llamaindex_query", async (state) => {
-    const tool = tools.find(t => t.name === 'LlamaIndex Query');
-    const result = await tool._call({ query: state.query });
-    agentManager.updateAgentMetrics('LlamaIndex Query', { queries_processed: 1 });
-    return { llamaindex_result: result };
-  });
-
-  // Response Node
   const responseNode = workflow.addNode("respond", async (state) => {
     const responsePrompt = PromptTemplate.fromTemplate(
       `You are an HR assistant. Use the provided information to answer the user's query.
@@ -252,15 +150,8 @@ async function createEnhancedHRCopilotAgent(pinecone, agentManager, ticketSystem
       User Query: {query}
       Category: {category}
       Pinecone Result: {pinecone_result}
-      LlamaIndex Result: {llamaindex_result}
-      Employee Context: {employee_context}
-      Conversation History: {conversation_history}
   
-      Please provide a comprehensive response based on the above information, tailored to the employee's context. 
-      
-      Important: If information is available from either Pinecone or LlamaIndex, use it in your response. Do not state that you don't have access to information if it's provided in either the Pinecone or LlamaIndex results.
-      
-      If you truly don't have enough information from any source, politely explain that you don't have sufficient data and suggest contacting HR for more details.`
+      Please provide a comprehensive response based on the above information.`
     );
   
     const chain = RunnableSequence.from([
@@ -273,57 +164,45 @@ async function createEnhancedHRCopilotAgent(pinecone, agentManager, ticketSystem
     return { final_response: result };
   });
 
-  // Conversation History Node
-  const conversationHistoryNode = workflow.addNode("update_conversation_history", async (state) => {
-    const updatedHistory = [
-      ...state.conversation_history,
-      { role: 'user', content: state.query },
-      { role: 'assistant', content: state.final_response }
-    ];
-    return { conversation_history: updatedHistory };
-  });
-
   // Edge definitions
-  workflow.setEntryPoint("fetch_employee_context");
-  workflow.addEdge("fetch_employee_context", "categorize");
+  workflow.setEntryPoint("categorize");
   workflow.addEdge("categorize", "pinecone_query");
-  workflow.addEdge("pinecone_query", "llamaindex_query");
-  workflow.addEdge("llamaindex_query", "respond");
-  workflow.addEdge("respond", "update_conversation_history");
-  workflow.addEdge("update_conversation_history", END);
+  workflow.addEdge("pinecone_query", "respond");
+  workflow.addEdge("respond", END);
 
   return workflow.compile();
 }
 
 // Appwrite function handler
-export default async function appwriteFunction(req, res) {
+export default async function(req, res) {
   const client = new Client();
 
-  // Don't forget to add your Appwrite endpoint and project ID in the Appwrite console
-  client
-    .setEndpoint('https://cloud.appwrite.io/v1')
-    .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
-    .setKey(process.env.APPWRITE_API_KEY);
+  if (
+    !process.env.APPWRITE_FUNCTION_ENDPOINT ||
+    !process.env.APPWRITE_FUNCTION_API_KEY
+  ) {
+    console.warn("Environment variables are not set. Function cannot use Appwrite SDK.");
+  } else {
+    client
+      .setEndpoint(process.env.APPWRITE_FUNCTION_ENDPOINT)
+      .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
+      .setKey(process.env.APPWRITE_FUNCTION_API_KEY);
+  }
 
   const pinecone = await setupPinecone();
   const agentManager = new AIAgentManager();
   agentManager.addAgent('HR Input Processing', 'categorization');
   agentManager.addAgent('Pinecone Query', 'knowledge_base');
-  agentManager.addAgent('LlamaIndex Query', 'knowledge_base');
 
   const ticketSystem = new TicketManagementSystem();
 
   try {
-    const hrCopilot = await createEnhancedHRCopilotAgent(pinecone, agentManager, ticketSystem);
+    const hrCopilot = await createHRCopilotAgent(pinecone, agentManager);
 
     // Parse the request payload
-    const { query, employeeContext } = JSON.parse(req.payload);
+    const { query } = JSON.parse(req.payload);
 
-    const result = await hrCopilot.invoke({
-      query: query,
-      employee_context: employeeContext,
-      conversation_history: []
-    });
+    const result = await hrCopilot.invoke({ query: query });
 
     // Handle ticket creation if necessary
     if (result.final_response.toLowerCase().includes("contact hr")) {
@@ -336,9 +215,6 @@ export default async function appwriteFunction(req, res) {
       result: result.final_response,
       category: result.category,
       pinecone_result: result.pinecone_result,
-      llamaindex_result: result.llamaindex_result,
-      employee_context: result.employee_context,
-      conversation_history: result.conversation_history,
       ticketId: result.ticketId
     });
   } catch (error) {
