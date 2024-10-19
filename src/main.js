@@ -15,7 +15,7 @@
 // };
 
 
-import { Client } from 'node-appwrite';
+import { Client, Storage } from 'node-appwrite';
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { Pinecone } from "@pinecone-database/pinecone";
 import { StateGraph, END } from "@langchain/langgraph";
@@ -26,6 +26,7 @@ import { z } from "zod";
 import dotenv from 'dotenv';
 import { StructuredTool } from "langchain/tools";
 import { Document, VectorStoreIndex, serviceContextFromDefaults, Gemini } from "llamaindex";
+import { HuggingFaceTransformersEmbeddings } from "@langchain/community/embeddings/hf_transformers";
 
 dotenv.config();
 
