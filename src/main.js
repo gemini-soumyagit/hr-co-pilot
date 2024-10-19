@@ -156,6 +156,7 @@ async function createEnhancedHRCopilotAgent(pinecone) {
     modelName: "gemini-pro",
     maxOutputTokens: 2048,
     temperature: 0,
+    apiKey: process.env.GOOGLE_API_KEY
   });
 
   const tools = [
